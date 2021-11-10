@@ -1,0 +1,11 @@
+{
+  "name": "people-parties-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "deno run --watch --allow-net ./index.ts"
+  },
+  "author": "",
+  "license": "ISC"
+}
