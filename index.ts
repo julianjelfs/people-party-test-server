@@ -3,7 +3,7 @@ import { oakCors } from "https://deno.land/x/cors/mod.ts";
 import router from "./router.ts";
 
 const HOST = "localhost";
-const PORT = 3000;
+const PORT = Deno.env.get("PORT") || 3000;
 
 const app = new Application();
 
