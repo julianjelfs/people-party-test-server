@@ -27,8 +27,8 @@ export function fakePartyRegPending(id: number): Party {
   const start = Date.now() + 1000 * 60 * 60 * 96;
   return {
     location: "London",
-    longitudeMax: 50,
-    longitudeMin: 40,
+    longitudeMax: 25,
+    longitudeMin: -25,
     id,
     callStart: start,
     registrationEnd: Date.now() + 1000 * 60 * 60 * 72,
@@ -41,8 +41,8 @@ export function fakePartyRegOpen(id: number): Party {
   const start = Date.now() + 1000 * 60 * 60 * 72;
   return {
     location: "London",
-    longitudeMax: 50,
-    longitudeMin: 40,
+    longitudeMax: 25,
+    longitudeMin: -25,
     id,
     callStart: start,
     registrationEnd: Date.now() + 1000 * 60 * 60 * 48,
@@ -55,8 +55,8 @@ export function fakePartyRegClosed(id: number): Party {
   const start = Date.now() + 1000 * 61 * 1;
   return {
     location: "London",
-    longitudeMax: 50,
-    longitudeMin: 40,
+    longitudeMax: 25,
+    longitudeMin: -25,
     id,
     callStart: start,
     registrationEnd: Date.now() - 1000 * 60 * 60 * 48,

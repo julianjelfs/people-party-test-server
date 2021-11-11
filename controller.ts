@@ -60,9 +60,11 @@ export function reset(ctx: RouterContext) {
   ];
   currentCall = {
     ...initialState,
+    allVotes: {},
   };
   stopLoop();
   ctx.response.status = 200;
+  console.log(currentCall);
 }
 
 function recordVote(
@@ -82,7 +84,7 @@ export function result(ctx: RouterContext) {
 
   // we are always operating on the same call here - the *real* implementation is more tricky
   const round = participants.findIndex((p) => p.name === user);
-  const votesForMe = Object.values(currentCall.allVotes[round]);
+  const votesForMe = Object.values(currentCall.allVotes[round] || {});
   const approvals = votesForMe.filter((v) => v === "approve");
   ctx.response.body = approvals.length >= 3;
 }
@@ -185,6 +187,7 @@ function secondsTillStart() {
 
 let currentCall: InternalCallState = {
   ...initialState,
+  allVotes: {},
 };
 
 function getNextRound(
