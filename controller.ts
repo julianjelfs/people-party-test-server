@@ -58,13 +58,19 @@ export function reset(ctx: RouterContext) {
     fakePartyRegOpen(1),
     fakePartyRegPending(2),
   ];
+  console.log(parties);
   currentCall = {
     ...initialState,
     allVotes: {},
+    joined: {},
   };
   stopLoop();
   ctx.response.status = 200;
+  ctx.response.body = currentCall;
   console.log(currentCall);
+  if (loop === undefined) {
+    loop = setInterval(nextTick, 1000);
+  }
 }
 
 function recordVote(
@@ -146,43 +152,48 @@ export async function join(ctx: RouterContext) {
     ...currentCall,
     publicCallState: {
       ...currentCall.publicCallState,
-      startsInSeconds: secondsTillStart(),
-      participants: currentCall.publicCallState.participants.map((p) => {
-        if (p.name === user) {
-          return {
-            ...p,
-            key: bodyVal.key,
-          };
-        }
-        return p;
-      }),
+      validationStartsInSeconds: secondsTillCallStart(),
+    },
+    joined: {
+      ...currentCall.joined,
+      [user]: bodyVal,
     },
   };
-
-  if (loop === undefined) {
-    loop = setInterval(nextTick, 1000);
-  }
 
   ctx.response.status = 200;
 }
 
 export function getCallState(ctx: RouterContext) {
-  ctx.response.body = currentCall.publicCallState;
+  const user = userName(ctx);
+  const seconds = secondsTillCallStart();
+  if (seconds <= 0 && currentCall.joined[user] === undefined) {
+    ctx.response.body = {
+      kind: "not_joined",
+    };
+  } else if (currentCall.publicCallState.kind === "not_started") {
+    ctx.response.body = {
+      ...currentCall.publicCallState,
+      joined: currentCall.joined[user] !== undefined,
+    };
+  } else {
+    ctx.response.body = currentCall.publicCallState;
+  }
 }
 
 const initialState: InternalCallState = {
   publicCallState: {
     kind: "not_started",
-    participants: participants,
-    startsInSeconds: 0,
+    joined: false,
+    validationStartsInSeconds: secondsTillCallStart(),
   },
   allVotes: {},
+  joined: {},
 };
 
-function secondsTillStart() {
-  const p = parties[0];
+function secondsTillCallStart() {
+  const p = parties[0].callStart + 60000;
   const now = Date.now();
-  return (p.callStart - now) / 1000;
+  return (p - now) / 1000;
 }
 
 let currentCall: InternalCallState = {
@@ -255,7 +266,34 @@ function nextTick() {
   }
 
   if (currentCall.publicCallState.kind === "not_started") {
-    const countdown = secondsTillStart();
+    const countdown = secondsTillCallStart();
+    if (countdown <= 60) {
+      currentCall = {
+        ...currentCall,
+        publicCallState: {
+          kind: "starting",
+          validationStartsInSeconds: countdown,
+          participants: participants
+            .filter((p) => currentCall.joined[p.name] !== undefined)
+            .map((p) => ({
+              ...p,
+              key: currentCall.joined[p.name],
+            })),
+        },
+      };
+    } else {
+      currentCall = {
+        ...currentCall,
+        publicCallState: {
+          ...currentCall.publicCallState,
+          validationStartsInSeconds: countdown,
+        },
+      };
+    }
+  }
+
+  if (currentCall.publicCallState.kind === "starting") {
+    const countdown = secondsTillCallStart();
     if (countdown <= 0) {
       const firstRound = getNextRound(
         currentCall.publicCallState.participants,
@@ -278,13 +316,14 @@ function nextTick() {
           ...currentCall,
           publicCallState: { kind: "ended" },
         };
+        stopLoop();
       }
     } else {
       currentCall = {
         ...currentCall,
         publicCallState: {
           ...currentCall.publicCallState,
-          startsInSeconds: countdown,
+          validationStartsInSeconds: countdown,
         },
       };
     }

@@ -126,16 +126,33 @@ export type CallResult = Record<number, Record<string, "approve" | "deny">>;
 export type InternalCallState = {
   publicCallState: CallState;
   allVotes: CallResult;
+  joined: Record<string, string>; // username -> key
 };
 
-export type CallState = NotCreated | NotStarted | Active | Ended;
+export type CallState =
+  | NotCreated
+  | NotStarted
+  | Starting
+  | NotJoined
+  | Active
+  | Ended;
 
 export type NotCreated = { kind: "not_created" };
 
 export type NotStarted = {
   kind: "not_started";
+  joined: boolean;
+  validationStartsInSeconds: number;
+};
+
+export type NotJoined = {
+  kind: "not_joined";
+};
+
+export type Starting = {
+  kind: "starting";
   participants: Participant[];
-  startsInSeconds: number;
+  validationStartsInSeconds: number;
 };
 
 export type Active = {
