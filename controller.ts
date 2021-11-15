@@ -28,12 +28,12 @@ let parties: Party[] = [
 ];
 
 const participants = [
-  fakeParticipant("gorillafez"),
-  fakeParticipant("largewheel"),
-  fakeParticipant("rugbyconfront"),
-  fakeParticipant("hopglaring"),
-  fakeParticipant("delightgod"),
-  fakeParticipant("fifthfrap"),
+  fakeParticipant("gorillafez", 51.4107954, -0.3008432),
+  fakeParticipant("largewheel", 51.4064159, -0.2871206),
+  fakeParticipant("rugbyconfront", 51.4142412, -0.2689883),
+  fakeParticipant("hopglaring", 51.4042837, -0.2502624),
+  fakeParticipant("delightgod", 51.3995109, -0.2234965),
+  fakeParticipant("fifthfrap", 51.4131514, -0.2336259),
 ];
 
 export function getParties({ response }: Context) {

@@ -65,12 +65,16 @@ export function fakePartyRegClosed(id: number): Party {
   };
 }
 
-export function fakeParticipant(name: string) {
+export function fakeParticipant(
+  name: string,
+  lat = 51.39781989392261,
+  long = -0.2220753698364275
+) {
   return {
     name,
     location: {
-      latitude: 51.39781989392261,
-      longitude: -0.2220753698364275,
+      latitude: lat,
+      longitude: long,
     },
     key: undefined,
   };
