@@ -52,7 +52,7 @@ export function fakePartyRegOpen(id: number): Party {
 }
 
 export function fakePartyRegClosed(id: number): Party {
-  const start = Date.now() + 1000 * 61 * 1;
+  const start = Date.now() + 1000 * 30 * 1;
   return {
     location: "London",
     longitudeMax: 25,

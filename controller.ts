@@ -16,6 +16,9 @@ function userName(ctx: RouterContext) {
   return ctx.request.headers.get("X-PARTICIPANT") || "gorillafez";
 }
 
+const GROUP_ASSEMBLY_TIME = 30000;
+const CONNECTION_TIME = 10000;
+
 let loop: number | undefined = undefined;
 
 let parties: Party[] = [
@@ -152,7 +155,8 @@ export async function join(ctx: RouterContext) {
     ...currentCall,
     publicCallState: {
       ...currentCall.publicCallState,
-      validationStartsInSeconds: secondsTillCallStart(),
+      validationStartsInSeconds:
+        secondsTillCallStart() - CONNECTION_TIME / 1000,
     },
     joined: {
       ...currentCall.joined,
@@ -184,14 +188,15 @@ const initialState: InternalCallState = {
   publicCallState: {
     kind: "not_started",
     joined: false,
-    validationStartsInSeconds: secondsTillCallStart(),
+    validationStartsInSeconds: secondsTillCallStart() - CONNECTION_TIME / 1000,
   },
   allVotes: {},
   joined: {},
 };
 
 function secondsTillCallStart() {
-  const p = parties[0].callStart + 60000;
+  // This is when the call will actuall begin. It is the callStart date (which is when the user must join by) + 60s for assembling the group + 10s for making rtc connections
+  const p = parties[0].callStart + GROUP_ASSEMBLY_TIME + CONNECTION_TIME;
   const now = Date.now();
   return (p - now) / 1000;
 }
@@ -267,7 +272,7 @@ function nextTick() {
 
   if (currentCall.publicCallState.kind === "not_started") {
     const countdown = secondsTillCallStart();
-    if (countdown <= 60) {
+    if (countdown <= CONNECTION_TIME / 1000) {
       currentCall = {
         ...currentCall,
         publicCallState: {
@@ -286,7 +291,7 @@ function nextTick() {
         ...currentCall,
         publicCallState: {
           ...currentCall.publicCallState,
-          validationStartsInSeconds: countdown,
+          validationStartsInSeconds: countdown - CONNECTION_TIME / 1000,
         },
       };
     }
