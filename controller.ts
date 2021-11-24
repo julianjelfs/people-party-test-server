@@ -16,13 +16,13 @@ function userName(ctx: RouterContext) {
   return ctx.request.headers.get("X-PARTICIPANT") || "gorillafez";
 }
 
-const GROUP_ASSEMBLY_TIME = 30000;
-const CONNECTION_TIME = 10000;
+const CONNECTION_TIME = 10;
 
 let loop: number | undefined = undefined;
 
 let parties: Party[] = [
   fakePartyRegClosed(0),
+  // fakePartyRegOpen(0),
   fakePartyRegOpen(1),
   fakePartyRegPending(2),
 ];
@@ -41,7 +41,7 @@ export function getParties({ response }: Context) {
 }
 
 export function getPersonProfile(ctx: RouterContext) {
-  ctx.response.body = fakeProfile(userName(ctx));
+  ctx.response.body = fakeProfile();
 }
 
 export function register() {}
@@ -108,23 +108,25 @@ export async function vote(ctx: RouterContext) {
   await sleep(2);
 
   const body = await ctx.request.body();
-  const { round, vote } = await body.value;
+  const { participant, vote } = await body.value;
   const user = userName(ctx);
 
   if (currentCall.publicCallState.kind === "active") {
     const currRound = currentCall.publicCallState.round;
+    const prover = currentCall.publicCallState.participants[currRound];
     const votersInRound =
-      currRound === round &&
+      prover.name === participant &&
       !currentCall.publicCallState.votersInRound.includes(user)
         ? [...currentCall.publicCallState.votersInRound, user]
         : currentCall.publicCallState.votersInRound;
+
     currentCall = {
       ...currentCall,
       publicCallState: {
         ...currentCall.publicCallState,
         votersInRound,
       },
-      allVotes: recordVote(currentCall.allVotes, user, round, vote),
+      allVotes: recordVote(currentCall.allVotes, user, currRound, vote),
     };
   }
 
@@ -155,12 +157,11 @@ export async function join(ctx: RouterContext) {
     ...currentCall,
     publicCallState: {
       ...currentCall.publicCallState,
-      validationStartsInSeconds:
-        secondsTillCallStart() - CONNECTION_TIME / 1000,
+      callStartsInSeconds: secondsTillCallStart() - CONNECTION_TIME / 1000,
     },
     joined: {
       ...currentCall.joined,
-      [user]: bodyVal,
+      [user]: bodyVal.key,
     },
   };
 
@@ -179,6 +180,16 @@ export function getCallState(ctx: RouterContext) {
       ...currentCall.publicCallState,
       joined: currentCall.joined[user] !== undefined,
     };
+  } else if (currentCall.publicCallState.kind === "active") {
+    ctx.response.body = {
+      ...currentCall.publicCallState,
+      myself: user,
+    };
+  } else if (currentCall.publicCallState.kind === "starting") {
+    ctx.response.body = {
+      ...currentCall.publicCallState,
+      myself: user,
+    };
   } else {
     ctx.response.body = currentCall.publicCallState;
   }
@@ -188,17 +199,21 @@ const initialState: InternalCallState = {
   publicCallState: {
     kind: "not_started",
     joined: false,
-    validationStartsInSeconds: secondsTillCallStart() - CONNECTION_TIME / 1000,
+    callStartsInSeconds: secondsTillCallStart(),
   },
   allVotes: {},
   joined: {},
 };
 
 function secondsTillCallStart() {
-  // This is when the call will actuall begin. It is the callStart date (which is when the user must join by) + 60s for assembling the group + 10s for making rtc connections
-  const p = parties[0].callStart + GROUP_ASSEMBLY_TIME + CONNECTION_TIME;
+  const p = parties[0].callStart;
   const now = Date.now();
   return (p - now) / 1000;
+}
+function secondsSinceCallStart() {
+  const p = parties[0].callStart;
+  const now = Date.now();
+  return (now - p) / 1000;
 }
 
 let currentCall: InternalCallState = {
@@ -272,12 +287,13 @@ function nextTick() {
 
   if (currentCall.publicCallState.kind === "not_started") {
     const countdown = secondsTillCallStart();
-    if (countdown <= CONNECTION_TIME / 1000) {
+    if (countdown <= 0) {
       currentCall = {
         ...currentCall,
         publicCallState: {
           kind: "starting",
-          validationStartsInSeconds: countdown,
+          myself: "anon",
+          validationStartsInSeconds: CONNECTION_TIME,
           participants: participants
             .filter((p) => currentCall.joined[p.name] !== undefined)
             .map((p) => ({
@@ -291,14 +307,14 @@ function nextTick() {
         ...currentCall,
         publicCallState: {
           ...currentCall.publicCallState,
-          validationStartsInSeconds: countdown - CONNECTION_TIME / 1000,
+          callStartsInSeconds: countdown,
         },
       };
     }
   }
 
   if (currentCall.publicCallState.kind === "starting") {
-    const countdown = secondsTillCallStart();
+    const countdown = CONNECTION_TIME - secondsSinceCallStart();
     if (countdown <= 0) {
       const firstRound = getNextRound(
         currentCall.publicCallState.participants,
@@ -309,6 +325,7 @@ function nextTick() {
           ...currentCall,
           publicCallState: {
             kind: "active",
+            myself: "anon",
             participants: currentCall.publicCallState.participants,
             round: firstRound,
             remainingSeconds: 60,

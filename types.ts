@@ -80,12 +80,11 @@ export function fakeParticipant(
   };
 }
 
-export function fakeProfile(name?: string): Profile {
+export function fakeProfile(): Profile {
   return {
-    name: name ?? "gorillafez",
-    deposit: 1,
     validationScore: 3,
-    registeredParties: [
+    pastParties: [],
+    upcomingParties: [
       {
         id: 0,
         location: {
@@ -103,10 +102,9 @@ export type RegisteredParty = {
 };
 
 export type Profile = {
-  name: string;
-  registeredParties: RegisteredParty[];
-  deposit: number;
+  upcomingParties: RegisteredParty[];
   validationScore: number;
+  pastParties: number[];
 };
 
 export type RegisterResponse =
@@ -146,7 +144,7 @@ export type NotCreated = { kind: "not_created" };
 export type NotStarted = {
   kind: "not_started";
   joined: boolean;
-  validationStartsInSeconds: number;
+  callStartsInSeconds: number;
 };
 
 export type NotJoined = {
@@ -155,12 +153,14 @@ export type NotJoined = {
 
 export type Starting = {
   kind: "starting";
+  myself: string;
   participants: Participant[];
   validationStartsInSeconds: number;
 };
 
 export type Active = {
   kind: "active";
+  myself: string;
   participants: Participant[];
   round: number;
   remainingSeconds: number;
