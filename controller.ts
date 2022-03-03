@@ -12,7 +12,7 @@ import {
   Party,
 } from "./types.ts";
 
-function userName(ctx: RouterContext) {
+function userName<T extends string>(ctx: RouterContext<T>) {
   return ctx.request.headers.get("X-PARTICIPANT") || "gorillafez";
 }
 
@@ -40,7 +40,7 @@ export function getParties({ response }: Context) {
   response.body = parties;
 }
 
-export function getPersonProfile(ctx: RouterContext) {
+export function getPersonProfile(ctx: RouterContext<"/get_person_profile">) {
   ctx.response.body = fakeProfile();
 }
 
@@ -55,7 +55,7 @@ function stopLoop() {
   }
 }
 
-export function reset(ctx: RouterContext) {
+export function reset(ctx: RouterContext<"/reset">) {
   parties = [
     fakePartyRegClosed(0),
     fakePartyRegOpen(1),
@@ -88,7 +88,7 @@ function recordVote(
   return votes;
 }
 
-export function result(ctx: RouterContext) {
+export function result(ctx: RouterContext<"/result">) {
   const user = userName(ctx);
 
   // we are always operating on the same call here - the *real* implementation is more tricky
@@ -98,7 +98,7 @@ export function result(ctx: RouterContext) {
   ctx.response.body = approvals.length >= 3;
 }
 
-export async function vote(ctx: RouterContext) {
+export async function vote(ctx: RouterContext<"/vote">) {
   if (!ctx.request.hasBody) {
     ctx.response.status = 400;
     ctx.response.body = "No request body";
@@ -133,7 +133,7 @@ export async function vote(ctx: RouterContext) {
   ctx.response.status = 200;
 }
 
-export async function join(ctx: RouterContext) {
+export async function join(ctx: RouterContext<"/join">) {
   if (currentCall.publicCallState.kind !== "not_started") {
     ctx.response.status = 500;
     ctx.response.body = "Call is not in a joinable state";
@@ -168,7 +168,7 @@ export async function join(ctx: RouterContext) {
   ctx.response.status = 200;
 }
 
-export function getCallState(ctx: RouterContext) {
+export function getCallState(ctx: RouterContext<"/get_call_state/:id">) {
   const user = userName(ctx);
   const seconds = secondsTillCallStart();
   if (seconds <= 0 && currentCall.joined[user] === undefined) {
